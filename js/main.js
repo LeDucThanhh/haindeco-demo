@@ -238,8 +238,14 @@
 
   function gShow(i) {
     gCurrent = (i + gThumbs.length) % gThumbs.length;
-    gMain.src = gThumbs[gCurrent].src;
-    gMain.alt = gThumbs[gCurrent].alt;
+    var next = gThumbs[gCurrent];
+    // Mờ dần ảnh cũ rồi mới thay ảnh mới
+    gMain.classList.add('is-fading');
+    setTimeout(function () {
+      gMain.src = next.src;
+      gMain.alt = next.alt;
+      gMain.classList.remove('is-fading');
+    }, 250);
     gThumbs.forEach(function (t, k) { t.classList.toggle('is-active', k === gCurrent); });
     // Cuộn dải ảnh nhỏ theo chiều ngang, không làm trang bị cuộn theo
     var strip = gThumbs[gCurrent].parentElement;
@@ -249,5 +255,78 @@
   document.getElementById('gPrev').addEventListener('click', function () { gShow(gCurrent - 1); });
   document.getElementById('gNext').addEventListener('click', function () { gShow(gCurrent + 1); });
   setInterval(function () { gShow(gCurrent + 1); }, 4000);
+  }
+
+  /* ---------- Hiệu ứng khi cuộn tới ---------- */
+  var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!calm && 'IntersectionObserver' in window) {
+    var REVEAL = [
+      '.block-title', '.page-title', '.page-lead', '.grid > *', '.stats > *', '.units > *', '.steps > li',
+      '.news-lead', '.news-item', '.link-list > a', '.kpis > div', '.svc-card', '.product', '.awards > *',
+      '.timeline > li', '.org-row', '.form', '.xk-hero', '.col-side > *',
+      '.gt-hero-cards > *', '.gt-metrics > *', '.gt-pillars > *', '.gt-steps > li', '.gt-projects > *',
+      '.gt-lab-items > *', '.gt-table-card', '.gt-cta', '#calc'
+    ].join(',');
+    var seen = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        var el = en.target;
+        seen.unobserve(el);
+        el.classList.add('is-in');
+        // Gỡ lớp hiệu ứng sau khi xong để không ảnh hưởng hover
+        setTimeout(function () {
+          el.classList.remove('reveal', 'is-in');
+          el.style.removeProperty('--d');
+        }, 900 + parseFloat(el.style.getPropertyValue('--d') || 0) * 1000);
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+
+    document.querySelectorAll(REVEAL).forEach(function (el) {
+      if (el.closest('.reveal')) return;
+      // Các phần tử cùng hàng xuất hiện lần lượt
+      var sibs = Array.prototype.filter.call(el.parentElement.children, function (c) { return c.matches(REVEAL); });
+      var k = Math.max(0, sibs.indexOf(el));
+      el.style.setProperty('--d', (k % 4) * 0.08 + 's');
+      el.classList.add('reveal');
+      seen.observe(el);
+    });
+
+    /* Số liệu chạy từ 0 lên (bỏ qua năm như 1997 và chỉ số có ký hiệu như K ≥ 0.98) */
+    var counted = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        counted.unobserve(en.target);
+        countUp(en.target);
+      });
+    }, { threshold: 0.6 });
+    document.querySelectorAll('.stat strong, .kpis strong, .gt-metric strong').forEach(function (el) {
+      var m = el.textContent.trim().match(/^(~?)(\d[\d.,]*)(.*)$/);
+      if (!m || /^(19|20)\d\d$/.test(m[2] + m[3])) return;
+      el.dataset.count = el.textContent;
+      counted.observe(el);
+    });
+  }
+
+  function countUp(el) {
+    var m = el.dataset.count.trim().match(/^(~?)(\d[\d.,]*)(.*)$/);
+    var raw = m[2];
+    var thousands = /\.\d{3}(?!\d)/.test(raw);               // 10.000 → dấu chấm ngăn nghìn
+    var decimals = (raw.split(',')[1] || '').length;          // 4,1 → 1 chữ số thập phân
+    var pad = raw.charAt(0) === '0' && raw.length > 1 ? raw.length : 0; // 02 → giữ số 0 đầu
+    var target = parseFloat(raw.replace(/\./g, '').replace(',', '.'));
+    var start = null;
+    function fmt(v) {
+      var s = decimals ? v.toFixed(decimals).replace('.', ',') : String(Math.round(v));
+      if (thousands) s = s.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      while (s.length < pad) s = '0' + s;
+      return m[1] + s + m[3];
+    }
+    function step(ts) {
+      if (start === null) start = ts;
+      var p = Math.min((ts - start) / 1400, 1);
+      el.textContent = fmt(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step); else el.textContent = el.dataset.count;
+    }
+    requestAnimationFrame(step);
   }
 })();
