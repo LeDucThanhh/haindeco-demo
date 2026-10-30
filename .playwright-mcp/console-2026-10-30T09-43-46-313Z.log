@@ -1,0 +1,2 @@
+[      63ms] [WARNING] Error parsing a meta element's content: ';' is not a valid key-value pair separator. Please use ',' instead. @ https://www.nchmf.gov.vn/kttv/:11
+[    1047ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.nchmf.gov.vn/upload/search-icon.png:0

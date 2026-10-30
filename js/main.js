@@ -279,8 +279,36 @@
   }
 
   /* ---------- Hiệu ứng khi cuộn tới ---------- */
-  var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!calm && 'IntersectionObserver' in window) {
+  /* ---------- Thẻ nghiêng 3D theo chuột (chỉ với chuột thật) ---------- */
+  var TILT = '.card, .svc, .project, .market, .unit, .stat, .svc-card, .award, .kpis > div, .steps > li, ' +
+    '.gt-glass-card, .gt-pillar, .gt-prj, .gt-steps > li, .gt-lab-item, .gt-metric';
+  var MAX = 8; // độ nghiêng tối đa
+  document.querySelectorAll(TILT).forEach(function (el) {
+    el.classList.add('tilt');
+    var glare = document.createElement('span');
+    glare.className = 'tilt-glare';
+    el.appendChild(glare);
+    // Thẻ to (trụ cột, dự án) nghiêng ít hơn cho đỡ chóng mặt
+    var max = el.offsetWidth > 360 ? MAX / 2 : MAX;
+    el.addEventListener('pointermove', function (e) {
+      if (e.pointerType !== 'mouse') return;
+      var r = el.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width;
+      var y = (e.clientY - r.top) / r.height;
+      el.style.setProperty('--ry', ((x - 0.5) * 2 * max).toFixed(2) + 'deg');
+      el.style.setProperty('--rx', ((0.5 - y) * 2 * max).toFixed(2) + 'deg');
+      el.style.setProperty('--gx', (x * 100).toFixed(1) + '%');
+      el.style.setProperty('--gy', (y * 100).toFixed(1) + '%');
+      el.classList.add('is-tilting');
+    });
+    el.addEventListener('pointerleave', function () {
+      el.classList.remove('is-tilting');
+      el.style.removeProperty('--rx');
+      el.style.removeProperty('--ry');
+    });
+  });
+
+  if ('IntersectionObserver' in window) {
     var REVEAL = [
       '.block-title', '.page-title', '.page-lead', '.grid > *', '.stats > *', '.units > *', '.steps > li',
       '.news-lead', '.news-item', '.link-list > a', '.kpis > div', '.svc-card', '.product', '.awards > *',
