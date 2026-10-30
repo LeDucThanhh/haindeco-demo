@@ -15,6 +15,8 @@
 }
 
 * { box-sizing: border-box; }
+/* Phần tử có thuộc tính hidden luôn ẩn, kể cả khi CSS khác đặt display (vd. bảng văn bản trên mobile) */
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
@@ -77,17 +79,21 @@ h1, h2, h3, h4 { margin: 0; }
 .nav-inner { display: flex; align-items: center; height: var(--nav-h); }
 
 .nav-logo {
-  display: none;
-  width: 44px;
+  display: block;
+  width: 0;
   height: 34px;
-  margin-right: 10px;
+  margin-right: 0;
   overflow: hidden;
   background: #fff;
   border-radius: 4px;
   flex-shrink: 0;
+  opacity: 0;
+  transform: scale(.6);
+  transition: width .35s var(--ease), margin .35s var(--ease), opacity .3s, transform .35s var(--ease);
 }
 .nav-logo img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
-.main-nav.is-stuck .nav-logo { display: block; }
+/* Logo nhỏ trượt vào khi menu dính lên đầu trang */
+.main-nav.is-stuck .nav-logo { width: 44px; margin-right: 10px; opacity: 1; transform: none; }
 
 .menu { list-style: none; margin: 0; padding: 0; display: flex; height: 100%; }
 .menu > li { position: relative; }
@@ -653,7 +659,12 @@ h1, h2, h3, h4 { margin: 0; }
 .kind { display: inline-block; padding: 0 7px; margin-right: 4px; border-radius: 3px; background: #e8eefb; color: var(--blue); font-size: 12px; font-weight: 700; }
 .dl { display: inline-block; padding: 3px 8px; border-radius: 3px; background: var(--red); color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .dl:hover { background: #a31f1f; }
-.doc-empty { padding: 20px; text-align: center; color: var(--muted); }
+.doc-empty { padding: 20px; text-align: center; color: var(--muted); animation: docIn .3s ease both; }
+/* Dòng văn bản mờ dần khi lọc */
+.doc-table tbody tr { transition: opacity .18s ease; }
+.doc-table tbody tr.is-leaving { opacity: 0; }
+.doc-table tbody tr.is-entering { animation: docIn .35s var(--ease) both; }
+@keyframes docIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
 /* ---------- GIỚI THIỆU (bố cục theo Figma, màu sắc theo bộ màu chung) ---------- */
 .page-full svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
@@ -1013,7 +1024,7 @@ h1, h2, h3, h4 { margin: 0; }
   .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   /* menu thu gọn */
-  .nav-logo { display: block; }
+  .nav-logo { width: 44px; margin-right: 10px; opacity: 1; transform: none; }
   .nav-toggle { display: block; }
   .menu {
     position: absolute;
@@ -1025,9 +1036,23 @@ h1, h2, h3, h4 { margin: 0; }
     overflow-y: auto;
     flex-direction: column;
     background: var(--blue-dark);
-    display: none;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, .2);
+    /* Ẩn bằng visibility để menu trượt xuống mượt khi mở */
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: opacity .25s ease, transform .35s var(--ease), visibility .35s;
   }
-  .menu.is-open { display: flex; }
+  .menu.is-open { visibility: visible; opacity: 1; transform: none; pointer-events: auto; }
+  .menu.is-open > li { animation: menuIn .4s var(--ease) both; }
+  .menu.is-open > li:nth-child(2) { animation-delay: .03s; }
+  .menu.is-open > li:nth-child(3) { animation-delay: .06s; }
+  .menu.is-open > li:nth-child(4) { animation-delay: .09s; }
+  .menu.is-open > li:nth-child(5) { animation-delay: .12s; }
+  .menu.is-open > li:nth-child(6) { animation-delay: .15s; }
+  .menu.is-open > li:nth-child(7) { animation-delay: .18s; }
+  .menu.is-open > li:nth-child(8) { animation-delay: .21s; }
   .menu > li > a { height: 46px; padding: 0 20px; border-bottom: 1px solid rgba(255, 255, 255, .1); }
   .sub {
     position: static;
@@ -1038,13 +1063,18 @@ h1, h2, h3, h4 { margin: 0; }
     border-top: 0;
     padding: 0;
     background: rgba(0, 0, 0, .12);
-    display: none;
+    display: block;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .35s var(--ease);
   }
-  .menu > li.open > .sub { display: block; }
+  .menu > li.open > .sub { max-height: 420px; }
   .sub a { color: #e8eefb; padding: 10px 34px; }
   .sub a:hover { background: rgba(0, 0, 0, .1); color: #fff; }
-  .has-sub > a::after { content: "▾"; margin-left: auto; }
+  .has-sub > a::after { content: "▾"; margin-left: auto; transition: transform .3s var(--ease); }
+  .has-sub.open > a::after { transform: rotate(180deg); }
 }
+@keyframes menuIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
 
 @media (max-width: 680px) {
   /* Điện thoại: gộp header + menu thành một thanh dùng banner mobile của site cũ */

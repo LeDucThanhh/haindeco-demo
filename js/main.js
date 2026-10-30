@@ -200,21 +200,42 @@
     var count = document.getElementById('docCount');
     var empty = document.getElementById('docEmpty');
 
-    var filterDocs = function () {
+    var emptyTimer = null;
+    var filterDocs = function (animate) {
       var q = search.value.trim().toLowerCase();
       var shown = 0;
       docRows.forEach(function (tr) {
         var ok = (!q || tr.textContent.toLowerCase().indexOf(q) !== -1) &&
           (!org.value || tr.dataset.org === org.value) &&
           (!kind.value || tr.dataset.kind === kind.value);
-        tr.hidden = !ok;
         if (ok) shown++;
+        clearTimeout(tr._t);
+        if (!animate) { tr.hidden = !ok; return; }
+        if (ok) {
+          // Dòng hiện lại thì trồi lên nhẹ
+          tr.classList.remove('is-leaving');
+          if (tr.hidden) {
+            tr.hidden = false;
+            tr.classList.remove('is-entering');
+            void tr.offsetWidth;
+            tr.classList.add('is-entering');
+          }
+        } else if (!tr.hidden) {
+          // Dòng bị lọc đi thì mờ dần rồi mới ẩn
+          tr.classList.add('is-leaving');
+          tr._t = setTimeout(function () {
+            tr.hidden = true;
+            tr.classList.remove('is-leaving', 'is-entering');
+          }, 180);
+        }
       });
       count.textContent = 'Hiển thị ' + shown + ' / ' + docRows.length + ' văn bản';
-      empty.hidden = shown > 0;
+      clearTimeout(emptyTimer);
+      if (shown > 0 || !animate) empty.hidden = shown > 0;
+      else emptyTimer = setTimeout(function () { empty.hidden = false; }, 180);
     };
-    [search, org, kind].forEach(function (el) { el.addEventListener('input', filterDocs); });
-    filterDocs();
+    [search, org, kind].forEach(function (el) { el.addEventListener('input', function () { filterDocs(true); }); });
+    filterDocs(false);
   }
 
   /* ---------- Nút sao chép liên kết bài viết ---------- */
